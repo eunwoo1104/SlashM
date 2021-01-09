@@ -43,6 +43,16 @@ class Music(commands.Cog):
 
         return 0, None
 
+    @cog_ext.cog_slash(name="player", description="현재 플레이어 정보를 보여줍니다.", guild_ids=guild_ids)
+    async def player_info(self, ctx: SlashContext):
+        codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
+        if not codo:
+            return await ctx.send(content="먼저 음악을 재생해주세요.", complete_hidden=True)
+        await ctx.send(5)
+        embed = discord.Embed(title=f"{ctx.guild.name} 서버 플레이어")
+        #embed.add_field()
+        await ctx.send(embeds=[embed])
+
     @cog_ext.cog_slash(name="play", description="음악을 재생합니다.",
                        options=[manage_commands.create_option("url-또는-제목", "유튜브 URL 또는 영상 제목입니다.", SlashCommandOptionType.STRING, True)],
                        guild_ids=guild_ids)
@@ -56,12 +66,17 @@ class Music(commands.Cog):
             await self.bot.connect_voice(ctx.guild, ctx.author.voice.channel)
             await ctx.send(content="음성 채널에 연결했어요! 잠시만 기다려주세요...") # Delays so vc can be created.
             codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
+        try:
+            is_playing = codo.state == "playing"
+        except AttributeError: # This need to be fixed at discodo.
+            __import__("traceback").print_exc()
+            is_playing = False
         codo.autoplay = False
         src = await codo.loadSource(url)
         if isinstance(src, list):
             return await ctx.send(content=f"재생목록의 영상 {len(src)}개가 추가되었어요!")
         else:
-            return await ctx.send(content=f"{src.title}을(를) 대기열에 넣었어요!")
+            return await ctx.send(content=f"{src.title}을(를) 대기열에 넣었어요!" if is_playing else f"{src.title}을(를) 재생할께요!")
 
     @cog_ext.cog_slash(name="skip", description="현재 재생중인 트랙을 스킵합니다.",
                        #options=[manage_commands.create_option("오프셋", "스킵할 트랙 번호입니다. 기본값은 1 입니다.", SlashCommandOptionType.INTEGER, False)],
@@ -99,6 +114,33 @@ class Music(commands.Cog):
         codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
         codo.shuffle()
         await ctx.send(content="재생목록을 섞었어요!")
+
+    @cog_ext.cog_slash(name="pause", description="플레이어를 일시정지합니다.",
+                       guild_ids=guild_ids)
+    async def pause(self, ctx: SlashContext):
+        check = await self.voice_check(ctx, check_connected=True, check_playing=True)
+        if check[0] != 0:
+            return await ctx.send(content=check[1], complete_hidden=True)
+        await ctx.send(5)
+        codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
+        codo.pause()
+        await ctx.send(content="플레이어를 일시정지했어요!")
+
+    @cog_ext.cog_slash(name="resume", description="플레이어를 일시정지를 해제합니다.",
+                       guild_ids=guild_ids)
+    async def resume(self, ctx: SlashContext):
+        check = await self.voice_check(ctx, check_connected=True, check_paused=True)
+        if check[0] != 0:
+            return await ctx.send(content=check[1], complete_hidden=True)
+        await ctx.send(5)
+        codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
+        codo.resume()
+        await ctx.send(content="플레이어를 다시 재생할께요!")
+
+    @cog_ext.cog_slash(name="state", guild_ids=guild_ids)
+    async def state(self, ctx: SlashContext):
+        codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
+        await ctx.send(content=codo.state)
 
 
 def setup(bot):
