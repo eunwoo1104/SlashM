@@ -9,6 +9,9 @@ handler = logging.FileHandler(filename=f'slashm.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
+if "database" not in os.listdir():
+    os.mkdir("database")
+
 bot = SMClient(command_prefix="sm!",
                allowed_mentions=discord.AllowedMentions(everyone=False),
                intents=discord.Intents.all())

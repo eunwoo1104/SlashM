@@ -69,7 +69,6 @@ class Music(commands.Cog):
         try:
             is_playing = codo.state == "playing"
         except AttributeError: # This need to be fixed at discodo.
-            __import__("traceback").print_exc()
             is_playing = False
         codo.autoplay = False
         src = await codo.loadSource(url)
@@ -136,11 +135,6 @@ class Music(commands.Cog):
         codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
         codo.resume()
         await ctx.send(content="플레이어를 다시 재생할께요!")
-
-    @cog_ext.cog_slash(name="state", guild_ids=guild_ids)
-    async def state(self, ctx: SlashContext):
-        codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
-        await ctx.send(content=codo.state)
 
 
 def setup(bot):
