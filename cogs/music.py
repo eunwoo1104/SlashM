@@ -82,8 +82,8 @@ class Music(commands.Cog):
             await ctx.send(content="음성 채널에 연결했어요! 잠시만 기다려주세요...") # Delays so vc can be created.
             codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
             self.bot.discodo.dispatcher.onAny(self.auto_leave)
+            codo.autoplay = False
         is_playing = (codo.state == "playing") if codo.player else False
-        codo.autoplay = False
         src = await codo.loadSource(url)
         if isinstance(src, list):
             return await ctx.send(content=f"재생목록의 영상 {len(src)}개가 추가되었어요!")
