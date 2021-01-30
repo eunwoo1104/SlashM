@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 from discord_slash import cog_ext
@@ -13,6 +14,7 @@ class Music(commands.Cog):
     def __init__(self, bot: SMClient):
         self.bot = bot
         self.bot.slash.get_cog_commands(self)
+        self.guild_channel = {}
 
     def cog_unload(self):
         self.bot.slash.remove_cog_commands(self)
@@ -43,6 +45,19 @@ class Music(commands.Cog):
 
         return 0, None
 
+    async def auto_leave(self, *args, **kwargs):
+        event = kwargs.get("event")
+        if event == "REQUIRE_NEXT_SOURCE":
+            if kwargs.get("autoplay"):
+                return
+            guild_id = int(args[0])
+            codo = self.bot.discodo.getVC(guild_id, safe=True)
+            await asyncio.sleep(codo.crossfade)
+            await self.bot.disconnect_voice(self.bot.get_guild(guild_id))
+            await self.guild_channel.get(guild_id).send("재생목록의 영상을 모두 재생했어요. 음성 채널에서 나갈께요.")
+            if codo:
+                self.bot.discodo.delVC(guild_id)
+
     @cog_ext.cog_slash(name="player", description="현재 플레이어 정보를 보여줍니다.", guild_ids=guild_ids)
     async def player_info(self, ctx: SlashContext):
         codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
@@ -66,15 +81,15 @@ class Music(commands.Cog):
             await self.bot.connect_voice(ctx.guild, ctx.author.voice.channel)
             await ctx.send(content="음성 채널에 연결했어요! 잠시만 기다려주세요...") # Delays so vc can be created.
             codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
-        try:
-            is_playing = codo.state == "playing"
-        except AttributeError: # This need to be fixed at discodo.
-            is_playing = False
+            self.bot.discodo.dispatcher.onAny(self.auto_leave)
+        is_playing = (codo.state == "playing") if codo.player else False
         codo.autoplay = False
         src = await codo.loadSource(url)
         if isinstance(src, list):
             return await ctx.send(content=f"재생목록의 영상 {len(src)}개가 추가되었어요!")
         else:
+            if not is_playing:
+                self.guild_channel[ctx.guild.id] = ctx.channel
             return await ctx.send(content=f"{src.title}을(를) 대기열에 넣었어요!" if is_playing else f"{src.title}을(를) 재생할께요!")
 
     @cog_ext.cog_slash(name="skip", description="현재 재생중인 트랙을 스킵합니다.",
