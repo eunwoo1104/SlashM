@@ -15,6 +15,7 @@ class Music(commands.Cog):
         self.bot = bot
         self.bot.slash.get_cog_commands(self)
         self.guild_channel = {}
+        self.bot.discodo.dispatcher.onAny(self.auto_leave)
 
     def cog_unload(self):
         self.bot.slash.remove_cog_commands(self)
@@ -81,7 +82,6 @@ class Music(commands.Cog):
             await self.bot.connect_voice(ctx.guild, ctx.author.voice.channel)
             await ctx.send(content="음성 채널에 연결했어요! 잠시만 기다려주세요...") # Delays so vc can be created.
             codo = self.bot.discodo.getVC(ctx.guild.id, safe=True)
-            self.bot.discodo.dispatcher.onAny(self.auto_leave)
             codo.autoplay = False
         is_playing = (codo.state == "playing") if codo.player else False
         src = await codo.loadSource(url)
